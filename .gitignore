@@ -1,0 +1,12 @@
+
+*~
+*.xfasl
+*.64xfasl
+*.ofasl
+*.64ofasl
+*.ufasl
+*.64ufasl
+build/*/
+
+.DS_Store
+xcuserdata
