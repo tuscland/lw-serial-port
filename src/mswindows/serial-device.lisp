@@ -1,12 +1,23 @@
-(defpackage "COM.WILDORA.SERIAL-STREAM"
-  (:nicknames "SERIAL-STREAM")
-  (:export
-   "OPEN-SERIAL-STREAM"
-   "SERIAL-STREAM-ERROR"
-   "SERIAL-STREAM-SPEED"
-   "SERIAL-PORT-NAMES"))
+;;;; -*- encoding: utf-8; mode: LISP; syntax: COMMON-LISP; indent-tabs-mode: nil -*-
 
-(in-package "COM.WILDORA.SERIAL-STREAM")
+;;; LispWorks Serial Port.
+;;; Copyright (c) 2013, Camille Troillard. All rights reserved.
+
+;;; Licensed under the Apache License, Version 2.0 (the "License");
+;;; you may not use this file except in compliance with the License.
+;;; You may obtain a copy of the License at
+;;;
+;;;     http://www.apache.org/licenses/LICENSE-2.0
+;;;
+;;; Unless required by applicable law or agreed to in writing,
+;;; software distributed under the License is distributed on an "AS
+;;; IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+;;; express or implied.  See the License for the specific language
+;;; governing permissions and limitations under the License.
+
+;;; Low Level Serial Port Access
+
+(in-package "COM.WILDORA.LW-SERIAL-DEVICE")
 
 (fli:define-c-struct (_commtimeouts
                       (:foreign-name "_COMMTIMEOUTS"))
@@ -127,6 +138,10 @@
 (defmethod stream-element-type ((self serial-stream))
   '(unsigned-byte 8))
 
+(defmethod wait-for-input ((self serial-stream))
+  ;; no-op at the moment
+  (values))
+
 (defmethod stream:stream-read-byte ((self serial-stream))
   (fli:with-dynamic-foreign-objects ((buffer :unsigned-byte))
     (when-let (number-of-bytes-read (serial-read (serial-stream-handle self)
@@ -159,7 +174,7 @@
     (cw:close-handle handle))
   (call-next-method))
 
-(defmethod (setf serial-stream-speed) (speed (self serial-stream))
+(defmethod (setf baudrate) (speed (self serial-stream))
   (with-slots (handle) self
     (set-comm-options handle speed)))
 
@@ -193,7 +208,7 @@
     (set-comm-state handle dcb)
     (set-comm-timeouts handle 0 10 0 10 100)))
 
-(defun open-serial-stream (port-name speed)
+(defun open-stream (port-name speed)
   (let ((handle (cw:create-file port-name
                                 (logior cw:GENERIC_READ cw:GENERIC_WRITE)
                                 0
@@ -212,7 +227,7 @@
 
 ;; Serial port listing
 
-(defun serial-port-names ()
+(defun device-names ()
   (ignore-errors
       (mapcar #'cdr (win32:collect-registry-values 
                      "HARDWARE\\DEVICEMAP\\SERIALCOMM"
