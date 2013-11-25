@@ -37,11 +37,10 @@
    ((mp:process-alive-p responder)
     :pending)))
 
-(defun responder-loop (read-callback events-callback)
+(defun responder-loop (stream read-callback events-callback)
   (setf (%runningp) t)
   (unwind-protect
-      (let ((stream (%device-stream))
-            (buffer (make-array 1024
+      (let ((buffer (make-array 1024
                                 :element-type '(unsigned-byte 8)
                                 :initial-element 0
                                 :single-thread t)))
