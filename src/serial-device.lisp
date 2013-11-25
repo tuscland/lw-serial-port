@@ -15,36 +15,12 @@
 ;;; express or implied.  See the License for the specific language
 ;;; governing permissions and limitations under the License.
 
+;;; Low Level Serial Port Access
 
-(in-package "CL-USER")
+(in-package "COM.WILDORA.LW-SERIAL-DEVICE")
 
-(defpackage "COM.WILDORA.LW-SLIP"
-  (:nicknames "SLIP")
-  (:export
-   "MAKE-DECODER"
-   "DECODE-PACKETS"
-   "ENCODE-PACKET"
-   "DECODE-ERROR"))
+(define-condition io-error (simple-error)
+  ())
 
-(defpackage "COM.WILDORA.LW-SERIAL-DEVICE"
-  (:nicknames "SERIAL-DEVICE")
-  (:export
-   "IO-ERROR"
-   "OPEN-STREAM"
-   "BAUDRATE"
-   "DEVICE-NAMES"
-   "WAIT-FOR-INPUT"
-   "+COMMON-BAUDRATES+"))
-
-(defpackage "COM.WILDORA.LW-SERIAL-RESPONDER"
-  (:nicknames "SERIAL-RESPONDER")
-  (:export
-   "STATUS"
-   "START"
-   "STOP"
-   "RUNNINGP"
-   "WRITE-BUFFER"
-   "SET-BAUDRATE"
-   "DEVICE-NAMES")
-  (:import-from "COM.WILDORA.LW-SERIAL-DEVICE"
-   "DEVICE-NAMES"))
+(defparameter +common-baudrates+
+  '(300 600 1200 2400 4800 9600 14400 19200 28800 38400 57600 115200))

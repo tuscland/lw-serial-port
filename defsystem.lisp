@@ -28,6 +28,8 @@
  (:default-pathname "src")
  :members ("package"
 
+           "serial-device"
+
            ("macosx/serial"
             :type :c-file
             :internal-dynamic-module :serial

@@ -37,10 +37,15 @@
     ()
   :result-type :size-t)
 
+(defun throw-io-error (description)
+  (error 'io-error
+         :format-control "Serial Device error occured: \"~A\""
+         :format-arguments (list description)))
+
 (defun check-result (result)
   (when (minusp result)
-    (error (strerror
-            (errno-value))))
+    (throw-io-error
+     (strerror (errno-value))))
   result)
 
 (fli:define-foreign-converter
@@ -139,8 +144,7 @@
            (serial-write (serial-device-stream-fd self)
                          buffer
                          (* length #.(fli:size-of :unsigned-byte))))
-          ;; TODO: throw actual error
-          (error 'end-of-file :stream self)
+          (throw-io-error "Unable to write on device.")
         sequence))))
 
 (defmethod close ((self serial-device-stream) &key abort)
@@ -160,10 +164,10 @@
   (let* ((original-port-attributes (fli:malloc :type :unsigned-byte
                                                :nelems (serial-sizeof-struct-termios)))
          (fd (serial-open port-name original-port-attributes)))
-    (handler-bind ((error (lambda (condition)
-                            (declare (ignore condition))
-                            (serial-close fd original-port-attributes)
-                            (fli:free original-port-attributes))))
+    (handler-bind ((io-error (lambda (condition)
+                               (declare (ignore condition))
+                               (serial-close fd original-port-attributes)
+                               (fli:free original-port-attributes))))
       (when (serial-set-options fd speed 0)
         (make-instance 'serial-device-stream
                        :file-descriptor fd

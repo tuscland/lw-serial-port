@@ -30,6 +30,13 @@
        ((not ,test))
      ,@body))
 
+(defun status (responder)
+  (cond
+   ((not (null (%device-stream responder)))
+    :ok)
+   ((mp:process-alive-p responder)
+    :pending)))
+
 (defun responder-loop (stream read-callback events-callback)
   (let ((buffer (make-array 1024
                             :element-type '(unsigned-byte 8)
@@ -41,6 +48,8 @@
           (let ((end (read-sequence buffer stream)))
             (funcall read-callback
                      (subseq buffer 0 end))))
+      ;; TODO: handle specifically slip:decode-error and
+      ;; serial-device:io-error
       (error (error)
         (funcall events-callback :error error)))))
 
