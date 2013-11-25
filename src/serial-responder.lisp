@@ -37,39 +37,38 @@
    ((mp:process-alive-p responder)
     :pending)))
 
-(defun responder-loop (stream read-callback events-callback)
-  (let ((buffer (make-array 1024
-                            :element-type '(unsigned-byte 8)
-                            :initial-element 0
-                            :single-thread t)))
-    (handler-case
-        (while (%runningp)
-          (serial-device:wait-for-input stream)
-          (let ((end (read-sequence buffer stream)))
-            (funcall read-callback
-                     (subseq buffer 0 end))))
-      ;; TODO: handle specifically slip:decode-error and
-      ;; serial-device:io-error
-      (error (error)
-        (funcall events-callback :error error)))))
+(defun responder-loop (read-callback events-callback)
+  (setf (%runningp) t)
+  (unwind-protect
+      (let ((stream (%device-stream))
+            (buffer (make-array 1024
+                                :element-type '(unsigned-byte 8)
+                                :initial-element 0
+                                :single-thread t)))
+        (handler-case
+            (while (%runningp)
+              (serial-device:wait-for-input stream)
+              (let ((end (read-sequence buffer stream)))
+                (handler-case
+                    (funcall read-callback
+                             (subseq buffer 0 end))
+                  (error (condition)
+                    (funcall events-callback :error condition)))))
+          ;; TODO: handle specifically serial-device:io-error
+          (serial-device:io-error (condition)
+            (funcall events-callback :error condition))))
+    (close stream)
+    (funcall events-callback :cleanup nil)))
 
 (defun start (device-path baudrate read-callback events-callback)
-  (let* ((waiting-process (mp:get-current-process))
-         (stream (serial-device:open-stream device-path baudrate))
+  (let* ((stream (serial-device:open-stream device-path baudrate))
          (responder (mp:process-run-function
                      (format nil "Serial I/O - ~A" device-path)
                      '()
-                     (lambda ()
-                       (setf (%device-stream) stream
-                             (%runningp) t)
-                       (mp:process-poke waiting-process)
-                       (unwind-protect
-                           (responder-loop stream read-callback events-callback)
-                         (progn
-                           (close stream)
-                           (funcall events-callback :cleanup nil)))))))
-    (mp:process-wait-local nil (lambda ()
-                                 (%runningp responder)))
+                     #'responder-loop
+                     read-callback
+                     events-callback)))
+    (setf (%device-stream responder) stream)
     responder))
 
 (defun stop (responder)
